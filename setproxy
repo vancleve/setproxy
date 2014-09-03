@@ -1,0 +1,81 @@
+#!/usr/bin/env python
+#
+# Jeremy Van Cleve <jeremy.vancleve@gmail.com>
+
+from subprocess import Popen
+import argparse
+import os
+import re
+
+nwsetupcmd = '/usr/sbin/networksetup'
+
+# turn off proxy settings
+def turnoffproxy(ifaces):
+    for iface in ifaces:
+        iface = "'%s'" % iface # put interface in quotes in case it has spaces
+        os.system(nwsetupcmd + ' -setsocksfirewallproxystate ' + iface + ' off')
+    
+
+# main function
+def main():
+    # get a list of the possible network interfaces
+    allifaces = os.popen('networksetup -listallnetworkservices').read().splitlines()[1:]
+    
+    parser = argparse.ArgumentParser(description='run SSH and set SOCKS proxy network settings')
+    parser.add_argument('--iface', default='All',
+                        help='network interace (e.g. ' + ', '.join(allifaces) + ', All)')
+    onoff = parser.add_mutually_exclusive_group(required=True)
+    onoff.add_argument('--on', dest='proxyon', action='store', metavar='SSH_SERVER',
+                        help='turn on SSH tunnel using SOCKS proxy through ssh server')
+    onoff.add_argument('--off', dest='proxyon', action='store_const', const='off',
+                        help='turn off SSH tunnel using SOCKS proxy')
+    args = parser.parse_args()
+    
+    if args.iface == 'All':
+        ifaces = allifaces
+    else:
+        # blackslash spaces in interface names
+#        sr = re.compile('\s')
+#        iface = sr.sub('\\ ', args.iface)
+#        ifaces = [iface]
+        ifaces = [args.iface]
+        
+    si = file('/dev/null','r')
+
+    if args.proxyon != 'off':
+        server = args.proxyon
+        # set proxy settings and run ssh
+        for iface in ifaces:
+            iface = "'%s'" % iface # put interface in quotes in case it has spaces
+            os.system(nwsetupcmd + ' -setsocksfirewallproxy ' + iface + ' localhost 3000 off')
+        sshp = Popen(['/usr/bin/ssh', '-N', '-D', '3000', server], stdin=si)
+
+        outstr = ""
+        for iface in ifaces:
+            outstr = outstr + iface + ", "
+        outstr = outstr.rstrip(', ')
+
+        try:
+            print "SOCKS proxy enabled on interfaces: %s." % outstr
+            print "Tunneling to %s..." % server
+            sshp.wait()
+            # if the ssh command exits, reset the proxy settings
+            turnoffproxy(ifaces)
+            print "Tunnel closed."
+            print "SOCKS proxy disabled on interfaces: %s." % outstr
+            
+        # if user aborts, kill ssh and reset proxy settings
+        except KeyboardInterrupt:
+            sshp.terminate()
+            turnoffproxy(ifaces)
+            print "Tunnel closed."
+            print "SOCKS proxy disabled on interfaces: %s." % outstr
+
+    else:
+        turnoffproxy(allifaces)
+        print "SOCKS proxy disabled."
+
+
+# Run main function
+if __name__ == "__main__": 
+    main()
