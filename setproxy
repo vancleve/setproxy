@@ -34,10 +34,6 @@ def main():
     if args.iface == 'All':
         ifaces = allifaces
     else:
-        # blackslash spaces in interface names
-#        sr = re.compile('\s')
-#        iface = sr.sub('\\ ', args.iface)
-#        ifaces = [iface]
         ifaces = [args.iface]
         
     si = file('/dev/null','r')
