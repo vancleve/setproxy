@@ -8,6 +8,14 @@ import os
 import re
 
 nwsetupcmd = 'sudo /usr/sbin/networksetup'
+port = '3000'
+
+# turn on proxy settings
+def turnonproxy(ifaces):
+    for iface in ifaces:
+        iface = "'%s'" % iface # put interface in quotes in case it has spaces
+        os.system(nwsetupcmd + ' -setsocksfirewallproxy ' + iface + ' localhost ' + port + ' off')
+
 
 # turn off proxy settings
 def turnoffproxy(ifaces):
@@ -41,10 +49,8 @@ def main():
     if args.proxyon != 'off':
         server = args.proxyon
         # set proxy settings and run ssh
-        for iface in ifaces:
-            iface = "'%s'" % iface # put interface in quotes in case it has spaces
-            os.system(nwsetupcmd + ' -setsocksfirewallproxy ' + iface + ' localhost 3000 off')
-        sshp = Popen(['/usr/bin/ssh', '-N', '-D', '3000', server], stdin=si)
+        sshp = Popen(['/usr/bin/ssh', '-N', '-D', port, server], stdin=si)
+        turnonproxy(ifaces)
 
         outstr = ""
         for iface in ifaces:
