@@ -36,7 +36,7 @@ def main():
     onoff.add_argument('--on', dest='proxyon', action='store', metavar='SSH_SERVER',
                         help='turn on SSH tunnel using SOCKS proxy through ssh server')
     onoff.add_argument('--off', dest='proxyon', action='store_const', const='off',
-                        help='turn off SSH tunnel using SOCKS proxy')
+                        help='turn off SOCKS proxy')
     args = parser.parse_args()
     
     if args.iface == 'All':
