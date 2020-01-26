@@ -37,6 +37,8 @@ def main():
                         help='turn on SSH tunnel using SOCKS proxy through ssh server')
     onoff.add_argument('--off', dest='proxyon', action='store_const', const='off',
                         help='turn off SOCKS proxy')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help='verbose mode for ssh')
     args = parser.parse_args()
     
     if args.iface == 'All':
@@ -44,12 +46,14 @@ def main():
     else:
         ifaces = [args.iface]
         
-    si = file('/dev/null','r')
+    si = open(os.devnull,'r')
 
     if args.proxyon != 'off':
         server = args.proxyon
         # set proxy settings and run ssh
-        sshp = Popen(['/usr/bin/ssh', '-N', '-D', port, server], stdin=si)
+        sshargs = ['-N', '-D', port, server]
+        if args.verbose: sshargs = ['-v'] + sshargs 
+        sshp = Popen(['/usr/bin/ssh'] + sshargs, stdin=si)
         turnonproxy(ifaces)
 
         outstr = ""
@@ -58,24 +62,24 @@ def main():
         outstr = outstr.rstrip(', ')
 
         try:
-            print "SOCKS proxy enabled on interfaces: %s." % outstr
-            print "Tunneling to %s..." % server
+            print("SOCKS proxy enabled on interfaces: %s." % outstr)
+            print("Tunneling to %s..." % server)
             sshp.wait()
             # if the ssh command exits, reset the proxy settings
             turnoffproxy(ifaces)
-            print "Tunnel closed."
-            print "SOCKS proxy disabled on interfaces: %s." % outstr
+            print("Tunnel closed.")
+            print("SOCKS proxy disabled on interfaces: %s." % outstr)
             
         # if user aborts, kill ssh and reset proxy settings
         except KeyboardInterrupt:
             sshp.terminate()
             turnoffproxy(ifaces)
-            print "Tunnel closed."
-            print "SOCKS proxy disabled on interfaces: %s." % outstr
+            print("Tunnel closed.")
+            print("SOCKS proxy disabled on interfaces: %s." % outstr)
 
     else:
         turnoffproxy(allifaces)
-        print "SOCKS proxy disabled."
+        print("SOCKS proxy disabled.")
 
 
 # Run main function
